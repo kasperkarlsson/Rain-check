@@ -16,12 +16,12 @@ WiFiServer server(80);
  * http://www.yr.no/stad/Sverige/V%C3%A4stra_G%C3%B6taland/G%C3%B6teborg/varsel.xml
 */
 
-String http_get(String url) {
+void http_get(String url) {
   // 
   HTTPClient http;
-  String httpResponse = "";
 
-  Serial.println("[HTTP] Begin");
+  Serial.print("[HTTP] Begin - ");
+  Serial.println(url);
   http.begin(url);
 
   Serial.println("[HTTP] Sending GET request");
@@ -31,15 +31,36 @@ String http_get(String url) {
   if(httpCode > 0) {
     Serial.printf("[HTTP] Response code: %d\n", httpCode);
     if(httpCode == HTTP_CODE_OK) {
-      httpResponse = http.getString();
-      Serial.println(httpResponse);
+      int len = http.getSize();
+      // Create read buffer
+      uint8_t buff[256] = { 0 };
+      WiFiClient *stream = http.getStreamPtr();
+
+      // Read all data from server
+      while(http.connected() && (len > 0 || len == -1)) {
+        // Get available data size
+        size_t available_size = stream->available();
+
+        if(available_size) {
+          // Process chunk
+          int c = stream->readBytes(buff, ((available_size > sizeof(buff)) ? sizeof(buff) : available_size));
+
+          // TODO Parse JSON here
+          Serial.write((char*)buff);
+
+          if(len > 0) {
+            len -= c;
+          }
+        }
+        delay(1);
+      }
+      Serial.println();
     }
   }
   else {
     Serial.printf("[HTTP] GET failed: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
-  return httpResponse;
 }
  
 void setup() {
@@ -128,9 +149,7 @@ void loop() {
   client.println("<a href='/?action=HTTP'><button>Send HTTP request</button></a><br /><br />");  
   
   if (request.indexOf("/?action=HTTP") != -1)  {
-    client.println("<b>Server response:</b><br /><br />");
-    String response = http_get("http://www.example.com/");
-    client.println(response);
+    http_get("http://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/11.5759/lat/57.4225/data.json");
   }
   
   client.println("</html>");

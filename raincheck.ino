@@ -3,8 +3,6 @@
 #include "settings.h"
 
 int ledPin = LED_BUILTIN;
-int ledStatus = LOW;
-WiFiServer server(80);
 
 String SMHI_URL = "http://opendata-download-metfcst.smhi.se/"
                   "api/category/pmp3g/version/2/geotype/point"
@@ -15,6 +13,7 @@ float precipitation[NUMBER_OF_HOURS];
 
 // http://opendata.smhi.se/apidocs/metfcst/parameters.html#parameters
 
+// Used to keep track of parsing state machine
 typedef enum ParseMode{
   parse_init,
   parsing_key,
@@ -23,7 +22,9 @@ typedef enum ParseMode{
   value_ended
 };
 
-bool get_precipitation() {
+bool refresh_forecast() {
+  // Retrieves a fresh forecast from the SMHI API, parses the
+  // response and updates the precipitation array
   bool success = false;
   HTTPClient http;
 
@@ -66,7 +67,6 @@ bool get_precipitation() {
           // {"name":"pmax","levelType":"hl","level":0,"unit":"kg/m2/h","values":[0.0]}
           for (int i=0; i<c; i++) {
             char current_char = (char)buff[i];
-            //Serial.write(current_char);
             switch (parser) {
               case parse_init:
                 if (current_char == '"') {
@@ -119,7 +119,6 @@ bool get_precipitation() {
         }
         delay(1);
       }
-      //Serial.println();
     }
   }
   else {
@@ -137,30 +136,10 @@ void blink(byte blinks, int blink_duration) {
     delay(blink_duration);
   }
 }
- 
-void setup() {
-  Serial.begin(115200);
-  delay(10);
- 
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
- 
-  // Connect to WiFi network
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
- 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
- 
-  while (WiFi.status() != WL_CONNECTED) {
-    blink(1, 250);
-    Serial.print(".");
-  }
-  Serial.println(" Connected!");
 
+void check_rain_status() {
   // Lookup rain data
-  bool success = get_precipitation();
+  bool success = refresh_forecast();
   if (success) {
     Serial.print("Lookup succeeded, values: ");
     bool it_will_rain = false;
@@ -185,7 +164,27 @@ void setup() {
   }
 }
  
-void loop() {
+void setup() {
+  Serial.begin(115200);
+  delay(10);
  
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+ 
+  // Connect to WiFi
+  Serial.print("\nConnecting to ");
+  Serial.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+ 
+  while (WiFi.status() != WL_CONNECTED) {
+    blink(1, 250);
+    Serial.print(".");
+  }
+  Serial.println(" Connected!");
+}
+ 
+void loop() {
+  check_rain_status();
+  delay(60000);
 }
 

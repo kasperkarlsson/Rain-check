@@ -40,7 +40,7 @@ bool get_precipitation() {
     if(httpCode == HTTP_CODE_OK) {
       int len = http.getSize();
       // Create read buffer
-      uint8_t buff[256] = { 0 };
+      uint8_t buff[256] = {0};
       WiFiClient *stream = http.getStreamPtr();
       // Initialize parser state machine
       ParseMode parser = parse_init;
@@ -50,8 +50,9 @@ bool get_precipitation() {
       byte parsed_values = 0;
       while(http.connected() && (len > 0 || len == -1)) {
         if (parsed_values == NUMBER_OF_HOURS) {
+          // All needed values have been parsed
           success = true;
-          Serial.println("Break!");
+          Serial.println("Parsing completed");
           break;
         }
         // Get available data size
@@ -156,18 +157,7 @@ void setup() {
     blink(1, 250);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
- 
-  // Start the server
-  server.begin();
-  Serial.println("Server started");
- 
-  // Print the IP address
-  Serial.print("Serving on ");
-  Serial.print("http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("/");
+  Serial.println(" Connected!");
 
   // Lookup rain data
   bool success = get_precipitation();
@@ -196,62 +186,6 @@ void setup() {
 }
  
 void loop() {
-  // Check if a client has connected
-  WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
- 
-  // Wait until the client sends some data
-  Serial.println("New client");
-  while(!client.available()){
-    delay(1);
-  }
- 
-  // Read the first line of the request
-  String request = client.readStringUntil('\r');
-  Serial.println(request);
-  client.flush();
- 
-  // LED control
-  if (request.indexOf("/?action=LED_OFF") != -1)  {
-    ledStatus = HIGH;
-  }
-  else if (request.indexOf("/?action=LED_ON") != -1)  {
-    ledStatus = LOW;
-  }
-  // Update LED pin
-  digitalWrite(ledPin, ledStatus);
- 
-  // Return the response
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
-  client.println("");
-  client.println("<!DOCTYPE html>");
-  client.println("<html>");
- 
-  client.print("Led status: <font color='");
- 
-  if(ledStatus == LOW) {
-    client.print("green'>ON");
-  } else {
-    client.print("red'>OFF");
-  }
-  client.print("</font>");
-  client.println("<br /><br />");
-  client.println("<a href='/?action=LED_ON'><button>Turn On</button></a>");
-  client.println("<a href='/?action=LED_OFF'><button>Turn Off</button></a><br /><br />");  
-  client.println("<a href='/?action=HTTP'><button>Send HTTP request</button></a><br /><br />");  
-  
-  if (request.indexOf("/?action=HTTP") != -1)  {
-    get_precipitation();
-  }
-  
-  client.println("</html>");
- 
-  delay(1);
-  Serial.println("Client disonnected");
-  Serial.println("");
  
 }
 

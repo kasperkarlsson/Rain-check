@@ -2,17 +2,16 @@
 #include <ESP8266WiFi.h>
 #include "settings.h"
 
-// This corresponds to the number of hours to check precipitation for,
-// e.g. 10 means "Will it rain in the next 10 hours?"
-#define VALUES_TO_PARSE 10
-
-
 int ledPin = LED_BUILTIN;
 int ledStatus = LOW;
 WiFiServer server(80);
 
-String SMHI_URL = "http://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/11.5759/lat/57.4225/data.json";
-float precipitation[VALUES_TO_PARSE];
+String SMHI_URL = "http://opendata-download-metfcst.smhi.se/"
+                  "api/category/pmp3g/version/2/geotype/point"
+                  "/lon/" TARGET_LONGITUDE
+                  "/lat/" TARGET_LATITUDE
+                  "/data.json";
+float precipitation[NUMBER_OF_HOURS];
 
 // http://opendata.smhi.se/apidocs/metfcst/parameters.html#parameters
 
@@ -50,7 +49,7 @@ bool get_precipitation() {
       // Read all data from server
       byte parsed_values = 0;
       while(http.connected() && (len > 0 || len == -1)) {
-        if (parsed_values == VALUES_TO_PARSE) {
+        if (parsed_values == NUMBER_OF_HOURS) {
           success = true;
           Serial.println("Break!");
           break;
@@ -175,7 +174,7 @@ void setup() {
   if (success) {
     Serial.print("Lookup succeeded, values: ");
     bool it_will_rain = false;
-    for (int i=0; i<VALUES_TO_PARSE; i++) {
+    for (int i=0; i<NUMBER_OF_HOURS; i++) {
       if (precipitation[i] > 0.0) {
         it_will_rain = true;
       }

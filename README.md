@@ -11,4 +11,4 @@ The NodeMCU will connect to your wifi using the SSID and password specified in `
 
 **Note:** In order to avoid accidentally commiting your wifi credentials after updating this file, run the following command:
 
-`git update-index --assume-unchanged`
+`git update-index --assume-unchanged settings.h`
